@@ -1,0 +1,26 @@
+test_that("One polynomial", {
+  pol <- gmpoly("4 x^(2, 1, 1) + 1/2 x^(0,1,0)")
+  expect_true(pol == gmpoly("1/2 x^(0, 1, 0) + 4 x^(2,1,1)"))
+  expect_true(2*pol == gmpoly("x^(0,1,0) + 8 x^(2,1,1)"))
+  expect_true(pol/4 == gmpoly("1/8 x^(0,1,0) + x^(2,1,1)"))
+  expect_true(pol - pol == gmpoly("0 x^(0,0,0)"))
+  expect_true(gmpoly("0 x^(0,0,0)") == gmpoly("0 x^(1,2,3)"))
+  expect_true(pol + pol == 2*pol)
+  expect_true(pol * pol == pol^2)
+  expect_true(pol^3 == pol * pol * pol)
+  expect_true(
+    pol^3 == gmpoly("1/8 x^(0,3,0) + 3 x^(2,3,1) + 24 x^(4,3,2) + 64 x^(6,3,3)")
+  )
+  expect_true(pol + 5 == gmpoly("4 x^(2,1,1) + 1/2 x^(0,1,0) + 5 x^(0,0,0)"))
+})
+
+test_that("Two polynomials", {
+  pol1 <- gmpoly("2 x^(1,1) - 5/3 x^(0,1)")
+  pol2 <- gmpoly("-2 x^(1,1) + 3 x^(2,1)")
+  expect_true(pol1 + pol2 == gmpoly("-5/3 x^(0,1) + 3 x^(2,1)"))
+  expect_true(pol1 * pol2 == gmpoly("10/3 x^(1,2) - 9 x^(2,2) + 6 x^(3,2)"))
+  pol1mvp <- gmpoly2mvp(pol1)
+  pol2mvp <- gmpoly2mvp(pol2)
+  expect_true(gmpoly2mvp(pol1 + pol2) == pol1mvp + pol2mvp)
+  expect_true(gmpoly2mvp(pol1 * pol2) == pol1mvp * pol2mvp)
+})
