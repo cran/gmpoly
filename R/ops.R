@@ -57,7 +57,7 @@ Ops.gmpoly <- function(e1, e2 = NULL) {
   }else if(.Generic == "+"){
     if(lclass && rclass){
       if(gmpoly_eq_gmpoly(e1, gmpoly_negate(e2))){
-        return(zeroPol(e1[["m"]]))
+        return(zeroPol(ncol(e1[["powers"]])))
       }
       return(polynomialAdd(e1, e2))
     }else if(lclass){
@@ -70,7 +70,7 @@ Ops.gmpoly <- function(e1, e2 = NULL) {
   }else if(.Generic == "-"){
     if(lclass && rclass){
       if(gmpoly_eq_gmpoly(e1, e2)){
-        return(zeroPol(e1[["m"]]))
+        return(zeroPol(ncol(e1[["powers"]])))
       }
       return(polynomialAdd(e1, gmpoly_negate(e2)))
     }else if(lclass){
@@ -121,7 +121,7 @@ gmpoly_negate <- function(pol){
 
 gmpoly_times_scalar <- function(pol, lambda){
   if(lambda == 0){
-    return(zeroPol(pol[["m"]]))
+    return(zeroPol(ncol(pol[["powers"]])))
   }
   if(lambda == 1 || isZeroPol(pol)){
     return(pol)
@@ -150,7 +150,7 @@ gmpoly_plus_scalar <- function(pol, x){
   if(x == 0){
     return(pol)
   }
-  m <- pol[["m"]]
+  m <- ncol(pol[["powers"]])
   scalarPol <- gmpoly(coeffs = as.bigq(x), powers = rbind(rep(0L, m)))
   polynomialAdd(pol, scalarPol)
 }
@@ -158,13 +158,13 @@ gmpoly_plus_scalar <- function(pol, x){
 gmpoly_power <- function(pol, n){
   stopifnot(isPositiveInteger(n))
   if(n == 0){
-    gmpoly(sprintf("x^(%s)", toString(rep("0", pol[["m"]]))))
+    gmpoly(sprintf("x^(%s)", toString(rep("0", ncol(pol[["powers"]])))))
   }else{
     Reduce(polynomialMul, rep(list(pol), n))
   }
 }
 
 gmpoly_eq_gmpoly <- function(pol1, pol2){
-  pol1[["m"]] == pol2[["m"]] && all(pol1[["coeffs"]] == pol2[["coeffs"]]) &&
-    all(pol1[["exponents"]] == pol2[["exponents"]])
+  ncol(pol1[["powers"]]) == ncol(pol2[["powers"]]) && 
+    all(pol1[["coeffs"]] == pol2[["coeffs"]])
 }

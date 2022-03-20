@@ -1,13 +1,10 @@
 polynomialSort <- function(pol){
-  exponents <- pol[["exponents"]]
-  idx <- order(exponents)
-  spol <- list(
+  powers <- pol[["powers"]]
+  idx <- lexorder(powers)
+  list(
     "coeffs" = pol[["coeffs"]][idx],
-    "exponents" = exponents[idx],
-    "m" = pol[["m"]]
+    "powers" = powers[idx, , drop = FALSE]
   )
-  attr(spol, "powers") <- attr(pol, "powers")[idx, , drop = FALSE]
-  spol
 }
 
 
@@ -20,10 +17,10 @@ polynomialCompress <- function(pol){
   #   coeffs <- coeffs[!zeros]
   #   exponents <- pol[["exponents"]][!zeros]
   # }else{
-  exponents <- pol[["exponents"]]
+  powers <- pol[["powers"]]
   # }
-  o1 <- o2 <- length(exponents)
-  exponents2 <- integer(o2)
+  o1 <- o2 <- nrow(powers)
+  powers2 <- matrix(NA_integer_, nrow = o2, ncol = ncol(powers))
   coeffs2 <- rep(NA_bigq_, o2)
   get <- put <- 0L
   while(get < o1){
@@ -31,14 +28,14 @@ polynomialCompress <- function(pol){
     if(0L == put){
       put <- put + 1L
       coeffs2[put] <- coeffs[get]
-      exponents2[put] <- exponents[get]
+      powers2[put, ] <- powers[get, ]
     }else{
-      if(exponents2[put] == exponents[get]){
+      if(all(powers2[put, ] == powers[get, ])){
         coeffs2[put] <- coeffs2[put] + coeffs[get]
       }else{
         put <- put + 1L
         coeffs2[put] <- coeffs[get]
-        exponents2[put] <- exponents[get]
+        powers2[put, ] <- powers[get, ]
       }
     }
   }
@@ -47,7 +44,7 @@ polynomialCompress <- function(pol){
   while(get <= o2){
     if(coeffs2[get] != 0L){
       coeffs2[put] <- coeffs2[get]
-      exponents2[put] <- exponents2[get]
+      powers2[put, ] <- powers2[get, ]
       put <- put + 1L
     }
     get <- get + 1L
@@ -55,15 +52,15 @@ polynomialCompress <- function(pol){
   o2 <- put - 1L
   list(
     "coeffs" = coeffs2[1L:o2],
-    "exponents" = exponents2[1L:o2],
-    "m" = pol[["m"]]
+    "powers" = powers2[1L:o2, , drop = FALSE]
   )
 }
 
 
 polynomialAdd <- function(pol1, pol2){
-  m <- pol1[["m"]]
-  if(m != pol2[["m"]]){
+  powers1 <- pol1[["powers"]]
+  powers2 <- pol2[["powers"]]
+  if(ncol(powers1) != ncol(powers2)){
     stop(
       "Adding polynomials is possible only if the number of variables is the ",
       "same for the two polynomials.",
@@ -77,32 +74,26 @@ polynomialAdd <- function(pol1, pol2){
     return(pol1)
   }
   coeffs <- c(pol1[["coeffs"]], pol2[["coeffs"]])
-  exponents <- c(pol1[["exponents"]], pol2[["exponents"]])
-  powers1 <- attr(pol1, "powers")
-  powers2 <- attr(pol2, "powers")
-  powers <- if(!is.null(powers1) && !is.null(powers2)){
-    rbind(powers1, powers2)
-  }
-  pol <- list(
+  powers <- rbind(powers1, powers2)
+  pol <- polynomialSort(list(
     "coeffs" = coeffs,
-    "exponents" = exponents,
-    "m" = m
-  )
-  attr(pol, "powers") <- powers
-  spol <- polynomialSort(pol)
-  notCompressed <- anyDuplicated(exponents) || any(coeffs == 0)
+    "powers" = powers
+  ))
+  notCompressed <- anyDuplicated(powers) || any(coeffs == 0)
   if(notCompressed){
-    spol <- polynomialCompress(spol)
+    pol <- polynomialCompress(pol)
   }
-  class(spol) <- "gmpoly"
-  spol
+  class(pol) <- "gmpoly"
+  pol
 }
 
 #' @importFrom gmp outer
 #' @noRd
 polynomialMul <- function(pol1, pol2){
-  m <- pol1[["m"]]
-  if(m != pol2[["m"]]){
+  powers1 <- pol1[["powers"]]
+  powers2 <- pol2[["powers"]]
+  m <- ncol(powers1)
+  if(m != ncol(powers2)){
     stop(
       "Multiplying polynomials is possible only if the number of variables is ",
       "the same for the two polynomials.",
@@ -116,46 +107,24 @@ polynomialMul <- function(pol1, pol2){
   coeffs2 <- pol2[["coeffs"]]
   o1 <- length(coeffs1)
   o2 <- length(coeffs2)
-  exponents1 <- pol1[["exponents"]]
-  exponents2 <- pol2[["exponents"]]
-  powers1 <- attr(pol1, "powers")
-  powers2 <- attr(pol2, "powers")
-  if(is.null(powers1)){
-    powers1 <- t(vapply(exponents1, function(e){
-      grlexUnrank(m, e)
-    }, integer(m)))
-  }
-  if(is.null(powers2)){
-    powers2 <- t(vapply(exponents2, function(e){
-      grlexUnrank(m, e)
-    }, integer(m)))
-  }
   coeffs <- c(gmp::outer(coeffs1, coeffs2))
   nterms <- o1 * o2
-  exponents <- integer(nterms)
   powers <- matrix(NA_integer_, nrow = nterms, ncol = m)
   o <- 1L
   for(j in 1L:o2){
     for(i in 1L:o1){
-      f1 <- powers1[i, ]
-      f2 <- powers2[j, ]
-      f <- f1 + f2
-      powers[o, ] <- f
-      exponents[o] <- grlexRank(f)
+      powers[o, ] <- powers1[i, ] + powers2[j, ]
       o <- o + 1L
     }
   }
-  pol <- list(
+  pol <- polynomialSort(list(
     "coeffs" = coeffs,
-    "exponents" = exponents,
-    "m" = m
-  )
-  attr(pol, "powers") <- powers
-  spol <- polynomialSort(pol)
-  notCompressed <- anyDuplicated(exponents) || any(coeffs == 0)
+    "powers" = powers
+  ))
+  notCompressed <- anyDuplicated(powers) || any(coeffs == 0)
   if(notCompressed){
-    spol <- polynomialCompress(spol)
+    pol <- polynomialCompress(pol)
   }
-  class(spol) <- "gmpoly"
-  spol
+  class(pol) <- "gmpoly"
+  pol
 }

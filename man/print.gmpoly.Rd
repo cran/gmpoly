@@ -15,5 +15,5 @@
 No value, just prints the polynomial.
 }
 \description{
-Print a multivariate polynomial of class \code{gmpoly}
+Print a multivariate polynomial of class \code{gmpoly}.
 }

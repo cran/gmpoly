@@ -9,3 +9,7 @@ isStrictlyPositiveInteger <- function(n){
 isScalar <- function(x){
   is.atomic(x) && length(x) == 1L && !is.na(x)
 }
+
+isString <- function(x){
+  isScalar(x) && is.character(x)
+}

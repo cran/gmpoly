@@ -17,5 +17,9 @@
 gmpolyConstant <- function(m, value){
   stopifnot(isStrictlyPositiveInteger(m))
   stopifnot(isScalar(value))
-  gmpoly(coeffs = as.bigq(value), powers = rbind(rep(0L, m)))
+  value <- as.bigq(value)
+  if(value == 0L){
+    return(zeroPol(m))
+  }
+  gmpoly(coeffs = value, powers = rbind(rep(0L, m)))
 }

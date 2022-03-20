@@ -12,20 +12,10 @@
 #' gmpolyGrow(pol)
 gmpolyGrow <- function(pol){
   stopifnot(inherits(pol, "gmpoly"))
-  m <- pol[["m"]]
-  powers <- attr(pol, "powers")
-  if(is.null(powers)){
-    powers <- t(vapply(pol[["exponents"]], function(e){
-      grlexUnrank(m, e)
-    }, integer(m)))
-  }
-  powers <- cbind(powers, 0L)
   newpol <- list(
     "coeffs" = pol[["coeffs"]], 
-    "exponents" = apply(powers, 1L, grlexRank),
-    "m" = m + 1L
+    "powers" = cbind(pol[["powers"]], 0L)
   )
-  attr(newpol, "powers") <- powers
   class(newpol) <- "gmpoly"
   newpol
 }

@@ -3,10 +3,8 @@
 zeroPol <- function(m){
   pol <- list(
     "coeffs" = as.bigq(0L),
-    "exponents" = 1L,
-    "m" = m
+    "powers" = t(rep(0L, m))
   )
-  attr(pol, "powers") <- t(rep(0L, m))
   attr(pol, "zero") <- TRUE
   class(pol) <- "gmpoly"
   pol
@@ -57,24 +55,18 @@ gmpoly <- function(string, coeffs = NULL, powers = NULL){
     }
     storage.mode(powers) <- "integer"
     stopifnot(all(powers >= 0L))
-    exponents <- apply(powers, 1L, grlexRank)
-    pol <- list(
+    pol <- polynomialSort(list(
       "coeffs" = coeffs,
-      "exponents" = exponents,
-      "m" = m
-    )
-    attr(pol, "powers") <- powers
-    if(is.unsorted(exponents)){
-      pol <- polynomialSort(pol)
-      powers <- attr(pol, "powers")
-    }
-    if(anyDuplicated(exponents)){
+      "powers" = powers
+    ))
+    if(anyDuplicated(powers) || any(coeffs == 0)){
       pol <- polynomialCompress(pol)
     }
   }else{
+    stopifnot(isString(string))
     pol <- stringToPol(string)
     if(all(pol[["coeffs"]] == 0L)){
-      return(zeroPol(pol[["m"]]))
+      return(zeroPol(ncol(pol[["powers"]])))
     }
   }
   class(pol) <- "gmpoly"
@@ -82,7 +74,7 @@ gmpoly <- function(string, coeffs = NULL, powers = NULL){
 }
 
 #' @title Print a multivariate polynomial
-#' @description Print a multivariate polynomial of class \code{gmpoly}
+#' @description Print a multivariate polynomial of class \code{gmpoly}.
 #'
 #' @param x a \code{\link{gmpoly}} object
 #' @param ... ignored
@@ -91,7 +83,7 @@ gmpoly <- function(string, coeffs = NULL, powers = NULL){
 #' @export
 print.gmpoly <- function(x, ...){
   cat("gmpoly object algebraically equal to\n")
-  cat(polAsString(x, attr(x, "powers")))
+  cat(polAsString(x, x[["powers"]]))
   cat("\n")
 }
 
@@ -112,17 +104,11 @@ print.gmpoly <- function(x, ...){
 #' pol <- gmpoly("5/2 x^(2,2,3) + 3 x^(1,0,1)")
 #' gmpoly2mvp(pol)
 gmpoly2mvp <- function(pol){
-  m <- pol[["m"]]
-  powers <- attr(pol, "powers")
-  if(is.null(powers)){
-    powers <- t(vapply(pol[["exponents"]], function(e){
-      grlexUnrank(m, e)
-    }, integer(m)))
-  }
+  powers <- pol[["powers"]]
   nterms <- nrow(powers)
   mvp(
-    vars = rep(list(paste0("x_", 1L:m)), nterms),
-    powers = split(powers, 1L:nterms),
+    vars = rep(list(paste0("x_", 1L:ncol(powers))), nterms),
+    powers = lapply(seq_len(nterms), function(i) powers[i, ]),
     coeffs = asNumeric(pol[["coeffs"]])
   )
 }

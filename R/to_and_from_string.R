@@ -1,13 +1,6 @@
-polAsString <- function(pol, powers = NULL){
-  m <- pol[["m"]]
+polAsString <- function(pol, powers){
   coeffs <- pol[["coeffs"]]
-  exponents <- pol[["exponents"]]
-  if(is.null(powers)){
-    powers <- t(vapply(exponents, function(e){
-      grlexUnrank(m, e)
-    }, integer(m)))
-  }
-  if(m != 1L){
+  if(ncol(powers) != 1L){
     powers <- apply(powers, 1L, paste0, collapse = ",")    
   }
   terms <- paste0(coeffs, " x^(", powers, ")")
@@ -38,27 +31,22 @@ stringToPol <- function(p){
     stop("Negative powers are not allowed.")
   }
   i <- 1L
-  m <- length(powers[[1L]])
-  nterms <- length(powers)
-  while(m == 1L && i < nterms){
-    i <- i + 1L
-    m <- length(powers[[i]])
-  }
-  powerRanks <- vapply(powers, grlexRank, integer(1L))
-  pol <- list(
+  # m <- length(powers[[1L]])
+  # nterms <- length(powers)
+  # while(m == 1L && i < nterms){
+  #   i <- i + 1L
+  #   m <- length(powers[[i]])
+  # }
+  powers <- do.call(rbind, powers)
+  pol <- polynomialSort(list(
     "coeffs" = coeffs, 
-    "exponents" = powerRanks,
-    "m" = m
-  )
-  attr(pol, "powers") <- do.call(rbind, powers)
-  if(is.unsorted(powerRanks)){
-    pol <- polynomialSort(pol)
-  }
-  if(anyDuplicated(powerRanks)){
+    "powers" = powers
+  ))
+  if(anyDuplicated(powers) || any(coeffs == 0)){
     pol <- polynomialCompress(pol)
   }
   if(all(pol[["coeffs"]] == 0L)){
-    return(zeroPol(m))
+    return(zeroPol(ncol(powers)))
   }
   class(pol) <- "gmpoly"
   pol

@@ -11,6 +11,7 @@
 #' @export
 #' 
 #' @importFrom gmp NA_bigq_ apply is.matrixZQ
+#' @importFrom english english
 #'
 #' @examples library(gmpoly)
 #' library(gmp)
@@ -24,32 +25,28 @@
 gmpolyEval <- function(pol, x){
   stopifnot(inherits(pol, "gmpoly"))
   stopifnot(is.bigq(x))
-  nvariables <- pol[["m"]]
+  powers <- pol[["powers"]]
+  nvariables <- ncol(powers)
   if(!is.matrixZQ(x)){
     stopifnot(length(x) == nvariables)
     x <- t(x)
   }else{
     if(ncol(x) != nvariables){
+      isare <- if(nvariables == 1L) "is" else "are"
+      s1 <- if(nvariables == 1L) "" else "s"
+      s2 <- if(ncol(x) == 1L) "" else "s"
       stop(
         sprintf(
-          "Invalid `x` matrix: there are %d variables, but `x` has %d columns.", 
-          nvariables, ncol(x))
+          "Invalid `x` matrix: there %s %s variable%s, but `x` has %s column%s.", 
+          isare, english(nvariables), s1, english(ncol(x)), s2)
       )
     }
-  }
-  powers <- attr(pol, "powers")
-  if(is.null(powers)){
-    powers <- vapply(pol[["exponents"]], function(e){
-      grlexUnrank(nvariables, e)
-    }, integer(nvariables))
-  }else{
-    powers <- t(powers)
   }
   nresults <- nrow(x)
   results <- rep(NA_bigq_, nresults)
   coeffs <- pol[["coeffs"]]
   for(i in 1L:nresults){
-    results[i] <- sum(coeffs * gmp::apply(c(x[i,])^powers, 0L, prod))
+    results[i] <- sum(coeffs * gmp::apply(c(x[i, ])^t(powers), 0L, prod))
   }
   results
 }
